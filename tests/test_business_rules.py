@@ -72,7 +72,71 @@ def test_included_in_fare_no_positive_price():
     assert "included_in_fare" in result.reason_codes
 
 
-def test_temporary_cap():
+def test_loyalty_complimentary_seat_is_free():
+    result = apply_business_rules(
+        recommended_price=120,
+        product_type="extra_legroom",
+        fare_type="Basic",
+        loyalty="Gold",
+        cabin="Economy",
+        channel="web",
+        remaining_extra_legroom=7,
+        route="AUH-LHR",
+    )
+    assert result.customer_price == 0.0
+    assert result.offered is False
+    assert "loyalty_complimentary" in result.reason_codes
+
+
+def test_baggage_online_cheaper_than_airport():
+    web = current_price(
+        route="AUH-LHR",
+        days_to_departure=21,
+        product_type="extra_baggage",
+        channel="web",
+        remaining_extra_legroom=10,
+    )
+    airport = current_price(
+        route="AUH-LHR",
+        days_to_departure=21,
+        product_type="extra_baggage",
+        channel="airport",
+        remaining_extra_legroom=10,
+    )
+    assert web < airport
+
+
+def test_complimentary_seat_both_current_and_new_model_paths():
+    shared = dict(
+        product_type="extra_legroom",
+        fare_type="Basic",
+        loyalty="Platinum",
+        cabin="Economy",
+        channel="web",
+        remaining_extra_legroom=7,
+        route="AUH-LHR",
+    )
+    current = apply_business_rules(
+        recommended_price=current_price(
+            route="AUH-LHR",
+            days_to_departure=4,
+            product_type="extra_legroom",
+            channel="web",
+            remaining_extra_legroom=7,
+        ),
+        **shared,
+    )
+    new_model = apply_business_rules(recommended_price=175, **shared)
+    assert current.customer_price == 0.0
+    assert new_model.customer_price == 0.0
+
+
+def test_fare_brand_inclusion_is_documented_stand_in():
+    from pathlib import Path
+
+    readme = Path(__file__).resolve().parents[1].joinpath("README.md").read_text(encoding="utf-8")
+    assert "portfolio stand-in" in readme.lower() or "portfolio stand-ins" in readme.lower()
+    assert "not Etihad production logic" in readme
     result = apply_business_rules(
         recommended_price=175,
         product_type="extra_legroom",
