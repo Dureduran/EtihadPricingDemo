@@ -1,0 +1,10 @@
+pandas>=2.2
+numpy>=1.26
+scikit-learn>=1.5
+xgboost>=2.1
+joblib>=1.4
+pyarrow>=16.0
+pytest>=8.3
+streamlit>=1.38
+altair>=5.4
+python-dateutil>=2.9

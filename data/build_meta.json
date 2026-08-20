@@ -1,0 +1,19 @@
+{
+  "n_rows": 12000,
+  "kaggle_used": false,
+  "train_columns": [
+    "route",
+    "fare_type",
+    "loyalty",
+    "channel",
+    "cabin",
+    "days_to_departure",
+    "remaining_extra_legroom",
+    "party_size",
+    "product_type",
+    "displayed_price",
+    "purchased"
+  ],
+  "hidden_path": "C:\\Users\\Lenovo\\OneDrive\\Documents\\Resume\\2026\\Etihad AI Solutions\\generator\\hidden_wtp.parquet",
+  "seed": 42
+}

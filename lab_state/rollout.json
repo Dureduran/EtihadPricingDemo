@@ -1,0 +1,92 @@
+[
+  {
+    "route": "AUH-LHR",
+    "product_type": "extra_baggage",
+    "status": "TESTING",
+    "traffic_percent": 0,
+    "shadow": true,
+    "allowed_min": 60,
+    "allowed_max": 180
+  },
+  {
+    "route": "AUH-LHR",
+    "product_type": "extra_legroom",
+    "status": "TESTING",
+    "traffic_percent": 20,
+    "shadow": false,
+    "allowed_min": 80,
+    "allowed_max": 150
+  },
+  {
+    "route": "AUH-JFK",
+    "product_type": "extra_baggage",
+    "status": "TESTING",
+    "traffic_percent": 0,
+    "shadow": true,
+    "allowed_min": 60,
+    "allowed_max": 180
+  },
+  {
+    "route": "AUH-JFK",
+    "product_type": "extra_legroom",
+    "status": "TESTING",
+    "traffic_percent": 0,
+    "shadow": true,
+    "allowed_min": 80,
+    "allowed_max": 150
+  },
+  {
+    "route": "AUH-BOM",
+    "product_type": "extra_baggage",
+    "status": "TESTING",
+    "traffic_percent": 0,
+    "shadow": true,
+    "allowed_min": 60,
+    "allowed_max": 180
+  },
+  {
+    "route": "AUH-BOM",
+    "product_type": "extra_legroom",
+    "status": "TESTING",
+    "traffic_percent": 0,
+    "shadow": true,
+    "allowed_min": 80,
+    "allowed_max": 150
+  },
+  {
+    "route": "AUH-CDG",
+    "product_type": "extra_baggage",
+    "status": "TESTING",
+    "traffic_percent": 0,
+    "shadow": true,
+    "allowed_min": 60,
+    "allowed_max": 180
+  },
+  {
+    "route": "AUH-CDG",
+    "product_type": "extra_legroom",
+    "status": "TESTING",
+    "traffic_percent": 0,
+    "shadow": true,
+    "allowed_min": 80,
+    "allowed_max": 150
+  },
+  {
+    "route": "AUH-SYD",
+    "product_type": "extra_baggage",
+    "status": "TESTING",
+    "traffic_percent": 0,
+    "shadow": true,
+    "allowed_min": 60,
+    "allowed_max": 180
+  },
+  {
+    "route": "AUH-SYD",
+    "product_type": "extra_legroom",
+    "status": "TESTING",
+    "traffic_percent": 0,
+    "shadow": true,
+    "allowed_min": 80,
+    "allowed_max": 150
+  }
+]
