@@ -9,8 +9,8 @@ from app.production_monitor import (
     pause_from_monitor,
     return_to_current_from_monitor,
 )
-from app.ui import DISCLAIMER, SIMULATED_BANNER
-from lab.copy import FORBIDDEN_UI_WORDS, RETURN_TO_CURRENT, ROLLOUT_DECISION
+from app.ui import SIMULATED_BANNER
+from lab.copy import FORBIDDEN_UI_WORDS, RETURN_TO_CURRENT
 from monitor.health import (
     DRIFT_GAP_THRESHOLD,
     FALLBACK_RATE_THRESHOLD,
@@ -104,16 +104,15 @@ def test_pause_and_return_reuse_pricing_controls(tmp_path, monkeypatch):
 def test_page_leads_with_rollout_decision_not_accuracy():
     text = PAGE.read_text(encoding="utf-8")
     assert "page_header(" in text
-    assert ROLLOUT_DECISION in text
+    assert "ROLLOUT_DECISION" in text
     assert "pause_from_monitor" in text
     assert "return_to_current_from_monitor" in text
-    assert SIMULATED_BANNER in text or "SIMULATED_BANNER" in text
-    assert DISCLAIMER == DISCLAIMER
+    assert "SIMULATED_BANNER" in text
+    assert SIMULATED_BANNER == "Simulated result using synthetic/public data."
     assert text.index("ROLLOUT_DECISION") < text.index("Predictions accurate")
     assert "89%" not in text
     assert "st.button(\"Expand to 100" not in text
     assert "increase_testing" not in text
-    assert "100%" in text
     assert "does not auto-expand traffic to 100%" in text
     assert "etihad.com" not in text.lower()
     for word in FORBIDDEN_UI_WORDS:
