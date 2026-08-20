@@ -19,5 +19,6 @@ PRICING_TEST_RESULTS = "Pricing Test Results"
 FORBIDDEN_UI_WORDS = (
     "Champion",
     "Challenger",
+    "Policy",
     "Rollback",
 )
