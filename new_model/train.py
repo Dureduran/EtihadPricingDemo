@@ -46,6 +46,7 @@ def build_pipeline() -> Pipeline:
         ]
     )
     # After one-hot, numeric block is at the end; last column is displayed_price.
+    # Hero model is XGBoost, not a Deepair-style DNN (that remains a future A/B).
     clf = XGBClassifier(
         n_estimators=180,
         max_depth=4,
