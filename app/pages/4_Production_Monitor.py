@@ -8,13 +8,16 @@ if str(ROOT) not in sys.path:
 import pandas as pd
 import streamlit as st
 
+from app.production_monitor import (
+    SECTIONS,
+    monitor_report,
+    pause_from_monitor,
+    return_to_current_from_monitor,
+)
 from app.ui import page_header
-from lab.copy import RETURN_TO_CURRENT, ROLLOUT_DECISION
+from lab.copy import RETURN_TO_CURRENT, ROLLOUT_DECISION, SIMULATED_BANNER
 from lab.paths import STATE_DIR
-from monitor.health import health
 from monitor.simulate import simulate_batch
-from monitor.test_results import summarise
-from rollout import get_config, upsert_config
 
 page_header("Production Monitor")
 
@@ -24,7 +27,7 @@ if not path.exists():
 else:
     offers = pd.read_parquet(path)
 
-report = health(offers)
+report = monitor_report(offers)
 stats = report["stats"]
 
 
@@ -39,7 +42,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-st.markdown("**Commercial performance**")
+st.markdown(f"**{SECTIONS[0]}**")
 a, b = st.columns(2)
 a.markdown(
     state_html("Revenue", f"{stats['revenue_impact']:+.1%}", report["commercial"]["revenue"]["state"]),
@@ -54,7 +57,7 @@ b.markdown(
     unsafe_allow_html=True,
 )
 
-st.markdown("**Model health**")
+st.markdown(f"**{SECTIONS[1]}**")
 c, d = st.columns(2)
 c.markdown(
     state_html(
@@ -73,7 +76,7 @@ d.markdown(
     unsafe_allow_html=True,
 )
 
-st.markdown("**System health**")
+st.markdown(f"**{SECTIONS[2]}**")
 e, f = st.columns(2)
 e.markdown(
     state_html(
@@ -92,7 +95,7 @@ f.markdown(
     unsafe_allow_html=True,
 )
 
-st.markdown("**Business rules**")
+st.markdown(f"**{SECTIONS[3]}**")
 st.markdown(
     state_html(
         "Violations",
@@ -102,17 +105,15 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+st.caption(
+    f"{SIMULATED_BANNER} Pause and {RETURN_TO_CURRENT} reuse Pricing Controls state. "
+    "This screen does not auto-expand traffic to 100%."
+)
+
 left, right = st.columns(2)
 if left.button("Pause expansion"):
-    cfg = get_config("AUH-LHR", "extra_legroom")
-    cfg.status = "PAUSED"
-    cfg.traffic_percent = 0
-    upsert_config(cfg)
+    pause_from_monitor()
     st.success("Paused extra-legroom AUH–LHR.")
 if right.button(RETURN_TO_CURRENT):
-    cfg = get_config("AUH-LHR", "extra_legroom")
-    cfg.status = "CURRENT_PRICING"
-    cfg.shadow = False
-    cfg.traffic_percent = 0
-    upsert_config(cfg)
+    return_to_current_from_monitor()
     st.success(RETURN_TO_CURRENT)

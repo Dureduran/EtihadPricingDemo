@@ -46,8 +46,28 @@ def test_summarise_hand_calc():
 
 def test_health_hold_on_auh_bom_drift():
     report = health(_frame())
+    assert report["model_health"]["drift_gap"] > 0.08
     assert report["decision"] == "HOLD"
     assert "AUH" in report["reason"] and "BOM" in report["reason"]
+    assert "seven days" in report["reason"]
+    assert report["model_health"]["customer_behaviour_changed"]["state"] == "warn"
+
+
+def test_hold_reason_requires_computed_drift():
+    frame = _frame()
+    frame["realised_purchase"] = [1, 1, 1]
+    report = health(frame)
+    assert report["model_health"]["drift_gap"] <= 0.08
+    assert "behaving differently" not in report["reason"]
+
+
+def test_pricing_failure_and_fallback_thresholds():
+    ok = health(_frame(), fallback_rate=0.0)
+    assert ok["system_health"]["pricing_failures"]["state"] == "pass"
+    assert ok["system_health"]["fallback_usage"]["state"] == "pass"
+    bad = health(_frame(), fallback_rate=0.05)
+    assert bad["system_health"]["pricing_failures"]["state"] == "fail"
+    assert bad["system_health"]["fallback_usage"]["state"] == "fail"
 
 
 def test_summarise_counts_business_rule_violations():

@@ -4,6 +4,21 @@ import pandas as pd
 
 from monitor.test_results import summarise
 
+DRIFT_ROUTE = "AUH-BOM"
+DRIFT_DTD = 7
+DRIFT_GAP_THRESHOLD = 0.08
+FAILURE_RATE_THRESHOLD = 0.02
+FALLBACK_RATE_THRESHOLD = 0.03
+CALIBRATION_GAP_THRESHOLD = 0.12
+REVENUE_FLOOR = -0.02
+CONVERSION_FLOOR_PP = -3.0
+EXPAND_REVENUE = 0.04
+
+HOLD_DRIFT_REASON = (
+    "AUH–BOM bookings within seven days of departure are behaving differently "
+    "from the training data. Keep the New Model at 20% of traffic while investigating."
+)
+
 
 def _flag(ok: bool, warn: bool = False) -> str:
     if ok and not warn:
@@ -13,38 +28,57 @@ def _flag(ok: bool, warn: bool = False) -> str:
     return "fail"
 
 
+def drift_gap(offers: pd.DataFrame) -> float:
+    if "route" not in offers.columns or "days_to_departure" not in offers.columns:
+        return 0.0
+    drift = offers[(offers["route"] == DRIFT_ROUTE) & (offers["days_to_departure"] <= DRIFT_DTD)]
+    if not len(drift) or "p_buy_new" not in drift.columns:
+        return 0.0
+    predicted = float(drift["p_buy_new"].mean())
+    realised = (
+        float(drift["realised_purchase"].mean())
+        if "realised_purchase" in drift.columns
+        else predicted
+    )
+    return predicted - realised
+
+
+def behaviour_changed(offers: pd.DataFrame) -> bool:
+    return drift_gap(offers) > DRIFT_GAP_THRESHOLD
+
+
+def failure_rate(offers: pd.DataFrame) -> float:
+    if offers.empty:
+        return 0.0
+    if "fallback_layer" not in offers.columns:
+        return 0.0
+    return float((offers["fallback_layer"] != "new_model").mean())
+
+
 def health(offers: pd.DataFrame, fallback_rate: float | None = None) -> dict:
     stats = summarise(offers)
-    n = max(len(offers), 1)
-    fail_rate = float((offers.get("fallback_layer", pd.Series(["new_model"] * n)) != "new_model").mean())
-    if fallback_rate is not None:
-        fail_rate = fallback_rate
+    fail_rate = failure_rate(offers) if fallback_rate is None else float(fallback_rate)
+    gap = drift_gap(offers)
+    drifted = gap > DRIFT_GAP_THRESHOLD
 
-    drift = offers[(offers["route"] == "AUH-BOM") & (offers["days_to_departure"] <= 7)]
-    drift_gap = 0.0
-    if len(drift):
-        predicted = drift["p_buy_new"].mean()
-        realised = drift["realised_purchase"].mean() if "realised_purchase" in drift else predicted
-        drift_gap = float(predicted - realised)
-
-    behaviour_changed = drift_gap > 0.08
-    calibration_ok = abs(stats["new_conversion"] - stats["live_conversion"]) < 0.12 if stats["n_new_model_live"] else True
-    rev_ok = stats["revenue_impact"] > -0.02
-    conv_ok = stats["conversion_impact_pp"] > -3.0
-    fail_ok = fail_rate < 0.02
-    fallback_ok = fail_rate < 0.03
+    calibration_ok = (
+        abs(stats["new_conversion"] - stats["live_conversion"]) < CALIBRATION_GAP_THRESHOLD
+        if stats["n_new_model_live"]
+        else True
+    )
+    rev_ok = stats["revenue_impact"] > REVENUE_FLOOR
+    conv_ok = stats["conversion_impact_pp"] > CONVERSION_FLOOR_PP
+    fail_ok = fail_rate < FAILURE_RATE_THRESHOLD
+    fallback_ok = fail_rate < FALLBACK_RATE_THRESHOLD
     rules_ok = stats["business_rule_violations"] == 0
 
-    if behaviour_changed:
+    if drifted:
         decision = "HOLD"
-        reason = (
-            "AUH–BOM bookings within seven days of departure are behaving differently "
-            "from the training data. Keep the New Model at 20% of traffic while investigating."
-        )
+        reason = HOLD_DRIFT_REASON
     elif not rev_ok or not conv_ok:
         decision = "Return to Current Pricing"
         reason = "Commercial performance is outside the agreed tolerance."
-    elif stats["revenue_impact"] > 0.04 and conv_ok and not behaviour_changed:
+    elif stats["revenue_impact"] > EXPAND_REVENUE and conv_ok:
         decision = "Expand"
         reason = "Revenue is up and conversion is within tolerance. Consider moving from 20% to 50%."
     else:
@@ -58,8 +92,8 @@ def health(offers: pd.DataFrame, fallback_rate: float | None = None) -> dict:
         },
         "model_health": {
             "predictions_accurate": {"state": _flag(calibration_ok)},
-            "customer_behaviour_changed": {"state": _flag(not behaviour_changed, warn=behaviour_changed)},
-            "drift_gap": drift_gap,
+            "customer_behaviour_changed": {"state": _flag(not drifted, warn=drifted)},
+            "drift_gap": gap,
         },
         "system_health": {
             "pricing_failures": {"value": fail_rate, "state": _flag(fail_ok)},
@@ -71,4 +105,5 @@ def health(offers: pd.DataFrame, fallback_rate: float | None = None) -> dict:
         "decision": decision,
         "reason": reason,
         "stats": stats,
+        "behaviour_changed": drifted,
     }
