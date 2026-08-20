@@ -13,14 +13,15 @@ Paid Model Serving is **not** required. The Streamlit lab scores with the export
 
 ## Free Edition steps
 
-1. Create a Databricks Free workspace and a cluster / serverless compute that can run Python.
-2. Clone [https://github.com/Dureduran/EtihadPricingDemo](https://github.com/Dureduran/EtihadPricingDemo) or upload this repo as a Repos folder.
-3. Locally: `python -m data.build_offer_log` then upload `data/offer_log_train.parquet` to a workspace volume, or run the ingest notebook against a DBFS/volume path you set in the widget `train_path`.
-4. Run `01_ingest_offer_log.py`, then `02_train_new_model.py`.
-5. Download the exported `model.joblib` into `new_model/` if you trained only in the cloud.
-6. Save the job run output (or a screenshot) into `databricks/runs/` so the repo proves it executed on Databricks, not only a laptop.
+1. Create a **Databricks Free** workspace (login at [databricks.com](https://www.databricks.com/)) and start a cluster or serverless compute that can run Python.
+2. Clone [https://github.com/Dureduran/EtihadPricingDemo](https://github.com/Dureduran/EtihadPricingDemo) into Repos, or upload this folder.
+3. Locally: `python -m data.build_offer_log`. Upload `data/offer_log.parquet` (raw) and `data/offer_log_train.parquet` (train) to a workspace Volume, or set the notebook widget `train_path` to that Volume path.
+4. In the notebook/script `01_ingest_offer_log.py`, confirm widget `train_path`. Run it. Expected tables: `offer_log_raw` and `offer_log_train` (Unity Catalog name `workspace.ancillary_lab.offer_log_train` when the catalog exists; otherwise workspace tables with those names).
+5. `DESCRIBE` `offer_log_train`: columns are only the TRAINING_FEATURES list plus `purchased`. No `latent_wtp`, `generator_rule_id`, or `true_elasticity`.
+6. Copy the job run JSON (or a redacted screenshot) into `databricks/runs/ingest_run.json` so `runtime` is `databricks`, not only `local`.
+7. Then run `02_train_new_model.py` (next issue). Paid Model Serving is not required.
 
-Catalog/schema suggestion: `workspace.ancillary_lab.offer_log_train`.
+Catalog/schema: `workspace.ancillary_lab`. Tables: `offer_log_raw`, `offer_log_train`.
 
 ## Secrets
 
