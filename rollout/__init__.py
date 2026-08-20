@@ -23,11 +23,15 @@ class RolloutConfig:
     allowed_max: float
 
     def assignment_mode(self) -> str:
-        if self.status in {"PAUSED", "CURRENT_PRICING"} or self.traffic_percent <= 0:
+        if self.status in {"PAUSED", "CURRENT_PRICING"}:
             return "return_to_current"
         if self.shadow:
             return "shadow"
-        return str(self.traffic_percent)
+        if self.traffic_percent <= 0:
+            return "offline"
+        if self.traffic_percent >= 100:
+            return "100"
+        return str(int(self.traffic_percent))
 
 
 def default_configs() -> list[RolloutConfig]:
