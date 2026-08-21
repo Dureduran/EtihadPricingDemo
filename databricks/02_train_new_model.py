@@ -23,20 +23,30 @@ if __name__ == "__main__":
     metrics = train()
     print(json.dumps(metrics, indent=2))
     mlflow_run_id = None
-    runtime = "databricks" if "spark" in dir() else "local"
+    has_spark = "spark" in dir()
+    runtime = "databricks" if has_spark else "local"
     try:
         import mlflow
 
-        mlflow.set_experiment("ancillary-new-model")
+        experiment = "ancillary-new-model"
+        try:
+            user = spark.sql("SELECT current_user()").collect()[0][0]  # noqa: F821
+            if user:
+                experiment = f"/Users/{user}/ancillary-new-model"
+        except Exception:
+            pass
+        mlflow.set_experiment(experiment)
         with mlflow.start_run(run_name="new-model-pbuy") as run:
             mlflow.log_metrics({k: v for k, v in metrics.items() if isinstance(v, (int, float))})
             mlflow.log_param("model", "xgboost_monotonic_price")
             mlflow_run_id = run.info.run_id
+            print("mlflow experiment", experiment)
             print("mlflow run", mlflow_run_id)
             runtime = "databricks"
     except Exception as exc:  # noqa: BLE001
         print("mlflow optional:", exc)
-        runtime = "local"
+        if not has_spark:
+            runtime = "local"
 
     DATABRICKS_RUNS.mkdir(parents=True, exist_ok=True)
     record = {
@@ -49,3 +59,4 @@ if __name__ == "__main__":
         "recorded_at": datetime.now(timezone.utc).isoformat(),
     }
     (DATABRICKS_RUNS / "train_run.json").write_text(json.dumps(record, indent=2), encoding="utf-8")
+    print("RUN_RECORD::" + json.dumps(record))
