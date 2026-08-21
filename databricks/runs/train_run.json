@@ -1,15 +1,15 @@
 {
   "script": "databricks/02_train_new_model.py",
-  "runtime": "local",
+  "runtime": "databricks",
   "model": "xgboost_monotonic_price",
-  "mlflow_run_id": null,
+  "mlflow_run_id": "50dd648c10284bb987edfcd2c8791562",
   "metrics": {
-    "auc": 0.8716598074776787,
-    "log_loss": 0.4484705626964569,
+    "auc": 0.8698461914062501,
+    "log_loss": 0.4510014576965187,
     "n_train": 9600,
     "n_test": 2400,
     "positive_rate": 0.53325
   },
   "artifact": "new_model/model.joblib",
-  "recorded_at": "2026-08-20T22:59:00+00:00"
+  "recorded_at": "2026-08-21T20:45:58.971578+00:00"
 }

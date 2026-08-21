@@ -1,12 +1,12 @@
 {
   "script": "databricks/01_ingest_offer_log.py",
-  "runtime": "local",
+  "runtime": "databricks",
   "catalog_schema": "workspace.ancillary_lab",
   "tables": [
     "offer_log_raw",
     "offer_log_train"
   ],
-  "train_path": "C:\\Users\\Lenovo\\OneDrive\\Documents\\Resume\\2026\\Etihad AI Solutions\\data\\offer_log_train.parquet",
+  "train_path": "/Volumes/workspace/default/ancillary_lab/data/offer_log_train.parquet",
   "n_rows": 12000,
   "train_columns": [
     "route",
@@ -22,5 +22,5 @@
     "purchased"
   ],
   "generator_columns_present": false,
-  "recorded_at": "2026-08-20T22:56:25.604219+00:00"
+  "recorded_at": "2026-08-21T20:39:02.838313+00:00"
 }

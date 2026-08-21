@@ -81,6 +81,7 @@ def ingest(train_path: str | None = None, raw_path: str | None = None) -> dict:
         "recorded_at": datetime.now(timezone.utc).isoformat(),
     }
     (DATABRICKS_RUNS / "ingest_run.json").write_text(json.dumps(log, indent=2), encoding="utf-8")
+    print("RUN_RECORD::" + json.dumps(log))
     return log
 
 
