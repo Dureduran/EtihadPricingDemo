@@ -4,3 +4,9 @@ primaryColor = "#C4A35A"
 backgroundColor = "#0B1F33"
 secondaryBackgroundColor = "#081624"
 textColor = "#E8EEF4"
+
+[server]
+headless = true
+
+[browser]
+gatherUsageStats = false

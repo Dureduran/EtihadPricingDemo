@@ -12,6 +12,10 @@ Etihad already has an in-house ancillary dynamic-pricing capability. This lab is
 
 Public GitHub: [Dureduran/EtihadPricingDemo](https://github.com/Dureduran/EtihadPricingDemo)
 
+Live lab: [https://dureduran.github.io/EtihadPricingDemo/](https://dureduran.github.io/EtihadPricingDemo/)
+
+One-page brief: [interview/one_page_brief.pdf](https://dureduran.github.io/EtihadPricingDemo/one_page_brief.pdf)
+
 ## Quick start
 
 ```bash

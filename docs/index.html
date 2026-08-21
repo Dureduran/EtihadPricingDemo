@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ancillary Pricing Production Lab</title>
+  <meta name="description" content="Independent portfolio prototype: test, roll out, and monitor machine-learning pricing for extra baggage and extra-legroom seats." />
+  <style>
+    :root {
+      --navy: #0B1F33;
+      --navy-2: #081624;
+      --panel: #10283F;
+      --line: #1E3D59;
+      --gold: #C4A35A;
+      --ink: #E8EEF4;
+      --muted: #9BB0C3;
+      --pass: #7DCEA0;
+      --warn: #F0C36A;
+      --fail: #E07A7A;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      background: var(--navy);
+      color: var(--ink);
+    }
+    header {
+      border-bottom: 3px solid var(--gold);
+      padding: 1.4rem 1.5rem 1.2rem;
+      background: var(--navy-2);
+    }
+    .wrap { max-width: 1080px; margin: 0 auto; padding: 0 1.25rem 3rem; }
+    .kicker {
+      letter-spacing: 0.14em;
+      font-size: 0.72rem;
+      color: var(--gold);
+      font-family: Calibri, Arial, sans-serif;
+      font-weight: 700;
+    }
+    h1 { font-size: 1.85rem; margin: 0.35rem 0 0.4rem; font-weight: 600; }
+    .sub { color: var(--muted); margin: 0; font-size: 1.02rem; }
+    .banner {
+      border: 1px solid var(--gold);
+      color: var(--gold);
+      padding: 0.55rem 0.8rem;
+      margin: 1rem 0 0.7rem;
+      font-size: 0.92rem;
+      font-family: Calibri, Arial, sans-serif;
+    }
+    .disclaimer { color: var(--muted); font-size: 0.88rem; margin: 0 0 1rem; }
+    nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+      margin: 1rem 0 1.4rem;
+    }
+    nav a, .btn {
+      display: inline-block;
+      text-decoration: none;
+      color: var(--ink);
+      border: 1px solid var(--line);
+      background: var(--panel);
+      padding: 0.4rem 0.7rem;
+      font-family: Calibri, Arial, sans-serif;
+      font-size: 0.88rem;
+    }
+    .btn.gold { border-color: var(--gold); color: var(--gold); }
+    section {
+      margin: 1.6rem 0 2rem;
+      padding-top: 0.4rem;
+    }
+    h2 {
+      font-size: 1.25rem;
+      margin: 0 0 0.7rem;
+      font-weight: 600;
+    }
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.7rem;
+      margin-bottom: 0.9rem;
+    }
+    .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 0.7rem; }
+    .kpi, .decision {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      padding: 0.9rem 1rem;
+    }
+    .decision { border: 2px solid var(--gold); margin: 0.8rem 0 1rem; }
+    .decision-label {
+      letter-spacing: 0.12em;
+      font-size: 0.75rem;
+      color: var(--gold);
+      font-family: Calibri, Arial, sans-serif;
+    }
+    .kpi span.label, .muted { color: var(--muted); font-size: 0.82rem; font-family: Calibri, Arial, sans-serif; }
+    .kpi strong { display: block; font-size: 1.25rem; margin-top: 0.2rem; }
+    .pass { color: var(--pass); }
+    .warn { color: var(--warn); }
+    .fail { color: var(--fail); }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: Calibri, Arial, sans-serif;
+      font-size: 0.95rem;
+    }
+    th, td { text-align: left; padding: 0.55rem 0.65rem; border-bottom: 1px solid var(--line); }
+    th { color: var(--gold); font-weight: 600; }
+    ul { margin: 0.4rem 0 0; padding-left: 1.15rem; line-height: 1.45; }
+    p { line-height: 1.45; }
+    footer {
+      border-top: 2px solid var(--gold);
+      padding: 1rem 0 0;
+      color: var(--muted);
+      font-size: 0.88rem;
+    }
+    footer a { color: var(--gold); }
+    @media (max-width: 800px) {
+      .metrics, .pair { grid-template-columns: 1fr 1fr; }
+      h1 { font-size: 1.4rem; }
+    }
+    @media (max-width: 520px) {
+      .metrics, .pair { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap" style="padding-bottom:0">
+      <div class="kicker">ANCILLARY PRICING PRODUCTION LAB</div>
+      <h1>Testing, safely rolling out and monitoring machine-learning pricing for airline seats and baggage</h1>
+      <p class="sub">Independent portfolio prototype. Extra baggage and extra-legroom seats.</p>
+    </div>
+  </header>
+  <div class="wrap">
+    <p class="disclaimer">Independent portfolio prototype using synthetic and public data. No Etihad internal data, systems or proprietary pricing logic are used.</p>
+    <div class="banner">Simulated result using synthetic/public data.</div>
+    <nav>
+      <a href="#explain">1. Price Explanation</a>
+      <a href="#controls">2. Pricing Controls</a>
+      <a href="#results">3. Pricing Test Results</a>
+      <a href="#monitor">4. Production Monitor</a>
+      <a class="gold" href="one_page_brief.pdf">One-page brief (PDF)</a>
+      <a class="gold" href="https://github.com/Dureduran/EtihadPricingDemo">GitHub</a>
+    </nav>
+
+    <p>Etihad already prices ancillaries in-house. This lab is not another dashboard that only predicts a price. It shows how a Solutions Manager would evaluate a <b>New Model</b> against <b>Current Pricing</b>, apply <b>Business Rules</b> as the final control, introduce the model in a traffic ladder (shadow → 5% → 20% → 50% → 100%), measure commercial impact, and <b>Return to Current Pricing</b> if it is not healthy.</p>
+
+    <section id="explain">
+      <h2>1. Price Explanation</h2>
+      <p class="muted">Why this booking’s extra-legroom price moved. Fixture: AUH → LHR, Economy Basic, 4 days to departure.</p>
+      <div class="metrics">
+        <div class="kpi"><span class="label">Route</span><strong>AUH → LHR</strong></div>
+        <div class="kpi"><span class="label">Fare</span><strong>Economy Basic</strong></div>
+        <div class="kpi"><span class="label">Departure</span><strong>4 days</strong></div>
+        <div class="kpi"><span class="label">Extra-legroom left</span><strong>7</strong></div>
+      </div>
+      <div class="pair">
+        <div class="kpi">
+          <span class="label">Current Pricing</span>
+          <strong>AED 190.00</strong>
+          <p>Purchase chance 58.7%<br/>Expected revenue AED 111.44</p>
+        </div>
+        <div class="kpi">
+          <span class="label">New Model</span>
+          <strong>AED 140.00</strong>
+          <p>Purchase chance 86.7%<br/>Expected revenue AED 121.38</p>
+        </div>
+      </div>
+      <p>Customer sees <b>AED 140.00</b>. Business Rules codes: rules_passed.</p>
+      <ul>
+        <li>departure is close</li>
+        <li>long-haul flight</li>
+        <li>few extra-legroom seats remain</li>
+        <li>fare does not already include the seat</li>
+      </ul>
+    </section>
+
+    <section id="controls">
+      <h2>2. Pricing Controls</h2>
+      <p>Revenue Management sets traffic, price bands, and temporary caps. This is not per-passenger approval. The New Model never bypasses Business Rules.</p>
+      <div class="metrics">
+        <div class="kpi"><span class="label">Route / product</span><strong>AUH-LHR extra-legroom</strong></div>
+        <div class="kpi"><span class="label">Status</span><strong>TESTING</strong></div>
+        <div class="kpi"><span class="label">Live traffic</span><strong>20%</strong></div>
+        <div class="kpi"><span class="label">Allowed band</span><strong>AED 80 – 150</strong></div>
+      </div>
+      <p class="muted">Rollout ladder: offline → shadow (log New Model, customer still gets Current Pricing) → 5% → 20% → 50% → 100%. Checkout fallback: New Model → Current Pricing → simple rules → safe fixed price.</p>
+    </section>
+
+    <section id="results">
+      <h2>3. Pricing Test Results</h2>
+      <p>We measure whether the New Model actually increases revenue versus Current Pricing without damaging conversion. n=500 simulated bookings. Live New Model arm n=5. Not a live airline A/B test.</p>
+      <table>
+        <thead>
+          <tr><th></th><th>Current Pricing</th><th>New Model</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Revenue per passenger (AED)</td><td>AED 82.05</td><td>AED 45.69</td></tr>
+          <tr><td>Purchase rate (%)</td><td>57.5%</td><td>37.8%</td></tr>
+          <tr><td>Average selling price (AED)</td><td>AED 141.62</td><td>AED 54.09</td></tr>
+        </tbody>
+      </table>
+      <p><b>Revenue impact:</b> −44.3% &nbsp; <b>Conversion impact:</b> −19.8 percentage points &nbsp; <b>Business-rule violations:</b> 0</p>
+      <p>The model decreases revenue by 44.3% in the simulation while conversion moves −19.8 percentage points versus Current Pricing.</p>
+    </section>
+
+    <section id="monitor">
+      <h2>4. Production Monitor</h2>
+      <div class="decision">
+        <div class="decision-label">ROLLOUT DECISION</div>
+        <h2 style="margin:0.35rem 0 0.5rem">Return to Current Pricing</h2>
+        <p style="margin:0">Commercial performance is outside the agreed tolerance. A model is not left live when the test is unhealthy — that is the point of this screen.</p>
+      </div>
+      <div class="metrics">
+        <div class="kpi"><span class="label">Commercial — revenue</span><strong class="fail">FAIL</strong></div>
+        <div class="kpi"><span class="label">Commercial — conversion</span><strong class="fail">FAIL</strong></div>
+        <div class="kpi"><span class="label">Customer behaviour changed</span><strong class="pass">No</strong></div>
+        <div class="kpi"><span class="label">Business-rule violations</span><strong class="pass">0</strong></div>
+      </div>
+    </section>
+
+    <footer>
+      <p>Interactive Streamlit lab (four screens, live controls): clone <a href="https://github.com/Dureduran/EtihadPricingDemo">Dureduran/EtihadPricingDemo</a> and run <code>streamlit run app/Home.py</code>, or deploy from GitHub at Streamlit Community Cloud.</p>
+      <p>One-page interview brief: <a href="one_page_brief.pdf">one_page_brief.pdf</a></p>
+    </footer>
+  </div>
+</body>
+</html>
