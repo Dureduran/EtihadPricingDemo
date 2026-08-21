@@ -65,13 +65,14 @@ def test_case_outline_is_eight_minute_lab_with_spoken_90_day_ideas():
 
 def test_resume_leads_with_lab_placeholder_then_qa_dashboard():
     text = RESUME.read_text(encoding="utf-8")
-    assert "LAB_URL_PLACEHOLDER" in text
+    lab_url = "https://dureduran.github.io/EtihadPricingDemo/"
+    assert lab_url in text
     assert "https://qa-dashboard-lac.vercel.app/" in text
     assert "supporting" in text.lower()
     assert text.index("Ancillary Pricing Production Lab") < text.index(
         "https://qa-dashboard-lac.vercel.app/"
     )
-    assert text.index("LAB_URL_PLACEHOLDER") < text.index("https://qa-dashboard-lac.vercel.app/")
+    assert text.index(lab_url) < text.index("https://qa-dashboard-lac.vercel.app/")
 
 
 def test_demo_language_aed_current_new_and_banner_aloud():
