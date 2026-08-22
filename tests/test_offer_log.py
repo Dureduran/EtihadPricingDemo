@@ -22,6 +22,7 @@ REQUIRED_OFFER_COLUMNS = {
 TRAIN_DIRS = [
     ROOT / "new_model",
     ROOT / "databricks",
+    ROOT / "gcp",
 ]
 
 

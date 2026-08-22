@@ -9,6 +9,7 @@ ALLOWED = set(TRAINING_FEATURES + [TARGET])
 TRAIN_DIRS = [
     ROOT / "new_model",
     ROOT / "databricks",
+    ROOT / "gcp",
 ]
 
 

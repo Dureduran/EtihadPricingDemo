@@ -1,0 +1,27 @@
+{
+  "script": "gcp/01_ingest_offer_log.py",
+  "runtime": "gcp",
+  "project": "mymain-496711",
+  "dataset": "ancillary_lab",
+  "tables": [
+    "offer_log_raw",
+    "offer_log_train"
+  ],
+  "train_path": "data/offer_log_train.parquet",
+  "n_rows": 12000,
+  "train_columns": [
+    "route",
+    "fare_type",
+    "loyalty",
+    "channel",
+    "cabin",
+    "days_to_departure",
+    "remaining_extra_legroom",
+    "party_size",
+    "product_type",
+    "displayed_price",
+    "purchased"
+  ],
+  "generator_columns_present": false,
+  "recorded_at": "2026-08-22T04:09:48.239993+00:00"
+}

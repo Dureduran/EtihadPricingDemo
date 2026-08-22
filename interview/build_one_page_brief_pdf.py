@@ -193,7 +193,7 @@ def build():
                     s["cell"],
                 ),
                 Paragraph(
-                    "P(buy | price, booking context), then Price x P(buy) on an allowed grid. Trained on Databricks; scored in the lab from an exported artifact.",
+                    "P(buy | price, booking context), then Price x P(buy) on an allowed grid. Trained on Databricks; BigQuery ingest in-repo. Scored in the lab from an exported artifact.",
                     s["cell"],
                 ),
             ],

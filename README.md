@@ -38,11 +38,11 @@ Open the app and walk **Price Explanation → Pricing Controls → Pricing Test 
 
 Booking information → possible prices → New Model → P(buy) at each price → choose max expected revenue → Business Rules → final price → customer buys / does not buy → save result → monitor.
 
-**Offline path (Databricks Free)**
+**Offline path (Databricks Free or GCP BigQuery + Colab / Vertex)**
 
 Historical results → train New Model → test against Current Pricing → small controlled rollout → measure revenue + conversion → expand / pause / return.
 
-See [databricks/README_DATABRICKS.md](databricks/README_DATABRICKS.md).
+See [databricks/README_DATABRICKS.md](databricks/README_DATABRICKS.md) and [gcp/README_GCP.md](gcp/README_GCP.md).
 
 ## Language
 
