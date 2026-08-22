@@ -28,6 +28,7 @@ REQUIRED_FOLDERS = (
     "monitor",
     "app",
     "databricks",
+    "gcp",
     "interview",
 )
 REQUIRED_LANGUAGE = (

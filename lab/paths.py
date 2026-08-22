@@ -6,6 +6,7 @@ GENERATOR_DIR = ROOT / "generator"
 MODEL_DIR = ROOT / "new_model"
 STATE_DIR = ROOT / "lab_state"
 DATABRICKS_RUNS = ROOT / "databricks" / "runs"
+GCP_RUNS = ROOT / "gcp" / "runs"
 
 OFFER_LOG = DATA_DIR / "offer_log.parquet"
 TRAIN_LOG = DATA_DIR / "offer_log_train.parquet"

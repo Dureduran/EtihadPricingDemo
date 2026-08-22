@@ -11,6 +11,6 @@ Independent portfolio prototype using synthetic and public data.
 | Monitor / HOLD | Production Monitor HOLD decision with a specific market/DTD reason |
 | Checkout fallback | New Model → Current Pricing → simple rules → safe fixed price |
 | Adoption / change | RM traffic and pause controls, not per-passenger approve |
-| POC into production | Databricks notebooks + exported model + fallback |
+| POC into production | Databricks notebooks or GCP BigQuery + Colab/Vertex notebooks + exported model + fallback |
 
 Keep simulated-data honesty in every answer. Say: Simulated result using synthetic/public data.

@@ -12,7 +12,7 @@ Etihad already prices ancillaries in-house. The job is not “build a model that
 
 **Current Pricing** — simulated existing system using route, days to departure, product, channel, and remaining inventory.
 
-**New Model** — P(buy | price, booking context), then Price × P(buy) on an allowed grid. Trained on Databricks Free; scored in the lab from an exported artifact.
+**New Model** — P(buy | price, booking context), then Price × P(buy) on an allowed grid. Trained on Databricks Free; BigQuery ingest + Colab/Vertex notebook in-repo. Scored in the lab from an exported artifact.
 
 Business Rules always finish the job (included-in-fare, loyalty, min/max, inventory, airport vs online bags, temporary RM caps). Example: recommend AED 175, cap AED 150, customer sees AED 150.
 
