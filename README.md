@@ -14,6 +14,8 @@ Public GitHub: [Dureduran/EtihadPricingDemo](https://github.com/Dureduran/Etihad
 
 Live lab: [https://dureduran.github.io/EtihadPricingDemo/](https://dureduran.github.io/EtihadPricingDemo/)
 
+Executive walkthrough: [docs/walkthrough.html](https://dureduran.github.io/EtihadPricingDemo/walkthrough.html)
+
 One-page brief: [interview/one_page_brief.pdf](https://dureduran.github.io/EtihadPricingDemo/one_page_brief.pdf)
 
 ## Quick start
