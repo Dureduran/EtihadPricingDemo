@@ -1,0 +1,1020 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ancillary Pricing Production Lab — Executive walkthrough</title>
+  <meta name="description" content="McKinsey-style walkthrough: the business question, the numbers, the pipeline, why monotonic XGBoost, and why the monitor Returns to Current Pricing." />
+  <style>
+    :root {
+      --navy: #0B1F3A;
+      --navy-2: #132A4A;
+      --cobalt: #1B5AB5;
+      --gold: #C4A35A;
+      --ink: #2D2D2D;
+      --muted: #8C8C8C;
+      --line: #E0E0E0;
+      --paper: #FFFFFF;
+      --wash: #F4F6F8;
+      --pass: #3AAF6C;
+      --fail: #E05252;
+      --slide-w: 1920px;
+      --slide-h: 1080px;
+    }
+    * { box-sizing: border-box; border-radius: 0 !important; }
+    html, body {
+      margin: 0;
+      height: 100%;
+      background: #0A1624;
+      color: var(--ink);
+      font-family: Arial, Helvetica, sans-serif;
+    }
+    .stage {
+      height: calc(100% - 48px);
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    .frame {
+      width: var(--slide-w);
+      height: var(--slide-h);
+      background: var(--paper);
+      position: relative;
+      transform-origin: center center;
+      overflow: hidden;
+    }
+    .slide {
+      display: none;
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      inset: 0;
+      background: var(--paper);
+    }
+    .slide.on { display: flex; flex-direction: column; }
+    .slide.cover, .slide.divider {
+      background: var(--navy);
+      color: #fff;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 80px 140px;
+    }
+    .kicker {
+      letter-spacing: 0.22em;
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--gold);
+      margin: 0 0 28px;
+    }
+    .cover h1 {
+      font-size: 64px;
+      line-height: 1.12;
+      font-weight: 800;
+      margin: 0;
+      letter-spacing: -0.02em;
+    }
+    .cover .rule {
+      width: 120px;
+      height: 3px;
+      background: var(--gold);
+      margin: 32px auto;
+    }
+    .cover .sub {
+      font-size: 26px;
+      line-height: 1.4;
+      color: #C5D0DC;
+      max-width: 1100px;
+      margin: 0 auto 40px;
+    }
+    .cover .meta {
+      font-size: 16px;
+      color: #9BB0C3;
+      letter-spacing: 0.04em;
+    }
+    .cover .hint {
+      position: absolute;
+      bottom: 36px;
+      left: 0; right: 0;
+      font-size: 14px;
+      color: #6E8498;
+    }
+    .divider .num {
+      font-size: 96px;
+      font-weight: 800;
+      color: var(--gold);
+      margin: 0 0 8px;
+      letter-spacing: -0.04em;
+    }
+    .divider h2 {
+      font-size: 48px;
+      margin: 0 0 18px;
+      font-weight: 800;
+    }
+    .divider p { font-size: 22px; color: #C5D0DC; margin: 0; max-width: 980px; }
+
+    .bar {
+      height: 64px;
+      background: var(--navy);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 40px;
+      flex: 0 0 64px;
+    }
+    .bar h1 {
+      font-size: 26px;
+      font-weight: 800;
+      margin: 0;
+      letter-spacing: -0.01em;
+    }
+    .bar .pg { font-size: 16px; color: #C5D0DC; }
+    .insight {
+      padding: 18px 40px 8px;
+      color: var(--cobalt);
+      font-size: 22px;
+      font-weight: 700;
+      line-height: 1.35;
+      flex: 0 0 auto;
+    }
+    .insight::after {
+      content: "";
+      display: block;
+      width: 56px;
+      height: 3px;
+      background: var(--gold);
+      margin-top: 12px;
+    }
+    .body {
+      flex: 1;
+      padding: 16px 40px 12px;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .foot {
+      flex: 0 0 40px;
+      padding: 0 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 13px;
+      color: var(--muted);
+      border-top: 1px solid var(--line);
+    }
+    h3 {
+      margin: 0 0 10px;
+      font-size: 15px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--navy);
+    }
+    p { margin: 0; line-height: 1.45; font-size: 18px; }
+    ul { margin: 0; padding-left: 18px; }
+    li { margin: 0 0 7px; font-size: 17px; line-height: 1.4; }
+    .g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; flex: 1; min-height: 0; }
+    .g3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; flex: 1; min-height: 0; }
+    .g4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; flex: 0 0 auto; }
+    .g13 { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 16px; flex: 1; min-height: 0; }
+    .g31 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+    .stack { display: flex; flex-direction: column; gap: 14px; flex: 1; min-height: 0; }
+    .zone {
+      background: var(--wash);
+      border: 1px solid var(--line);
+      padding: 16px 18px;
+    }
+    .zone.white { background: #fff; }
+    .zone.navy { background: var(--navy); color: #fff; border-color: var(--navy); }
+    .zone.navy h3, .zone.navy p { color: #fff; }
+    .zone.gold-edge { border-left: 5px solid var(--gold); }
+    .zone.cobalt-edge { border-left: 5px solid var(--cobalt); }
+    .zone.fail-edge { border-left: 5px solid var(--fail); }
+    .zone.pass-edge { border-left: 5px solid var(--pass); }
+    .kpi {
+      background: var(--wash);
+      border: 1px solid var(--line);
+      padding: 14px 16px;
+    }
+    .kpi .lbl { font-size: 13px; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; }
+    .kpi .val { font-size: 32px; font-weight: 800; color: var(--navy); margin-top: 4px; letter-spacing: -0.03em; }
+    .kpi .hint { font-size: 14px; color: var(--ink); margin-top: 4px; }
+    .kpi.fail .val { color: var(--fail); }
+    .kpi.pass .val { color: var(--pass); }
+    .kpi.gold .val { color: #8A6D28; }
+    table { width: 100%; border-collapse: collapse; font-size: 16px; }
+    th {
+      text-align: left;
+      background: var(--navy);
+      color: #fff;
+      font-weight: 700;
+      padding: 8px 10px;
+    }
+    td { padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    tr.pick td { background: #EEF3FB; font-weight: 700; }
+    .tag {
+      display: inline-block;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      padding: 3px 8px;
+      margin-right: 6px;
+    }
+    .tag.pass { background: #E5F6EC; color: #1F7A43; }
+    .tag.fail { background: #FDECEC; color: #B42318; }
+    .tag.hold { background: #FFF4D6; color: #8A6D28; }
+    .tag.navy { background: var(--navy); color: #fff; }
+    .eq {
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 18px;
+      background: #fff;
+      border: 1px solid var(--line);
+      padding: 12px 14px;
+    }
+    .steps { display: flex; gap: 8px; align-items: stretch; }
+    .step {
+      flex: 1;
+      background: #fff;
+      border: 1px solid var(--line);
+      padding: 12px 10px;
+      text-align: center;
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--navy);
+      position: relative;
+    }
+    .step.now { background: var(--navy); color: #fff; border-color: var(--navy); }
+    .step.kill { background: #FDECEC; color: var(--fail); border-color: #F0B4B4; }
+    .muted { color: var(--muted); }
+    .small { font-size: 15px; line-height: 1.4; }
+    .tiny { font-size: 13px; color: var(--muted); }
+    .tree {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 12px;
+      flex: 1;
+      min-height: 0;
+    }
+    .tree-q {
+      background: var(--navy);
+      color: #fff;
+      padding: 22px 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    .tree-q strong { font-size: 26px; line-height: 1.25; display: block; margin: 10px 0 14px; }
+    .branches { display: grid; grid-template-rows: repeat(4, 1fr); gap: 10px; }
+    .branch {
+      display: grid;
+      grid-template-columns: 210px 1fr 90px;
+      gap: 12px;
+      align-items: center;
+      border: 1px solid var(--line);
+      background: #fff;
+      padding: 10px 14px;
+    }
+    .chrome {
+      position: fixed;
+      left: 0; right: 0; bottom: 0;
+      height: 48px;
+      z-index: 5;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      background: #0A1624;
+      color: #C5D0DC;
+      font-size: 12px;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+    .chrome b { color: var(--gold); }
+    .dots { display: flex; gap: 6px; align-items: center; }
+    .dot {
+      width: 9px; height: 9px;
+      background: #3A5168;
+      border: 0;
+      padding: 0;
+      cursor: pointer;
+    }
+    .dot.on { background: var(--gold); }
+    .navbtn {
+      background: transparent;
+      border: 1px solid #3A5168;
+      color: #C5D0DC;
+      padding: 6px 12px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    .notes {
+      display: none;
+      position: fixed;
+      right: 16px;
+      bottom: 52px;
+      width: 420px;
+      max-height: 280px;
+      overflow: auto;
+      background: #081624;
+      color: #E8EEF4;
+      border: 1px solid var(--gold);
+      padding: 14px 16px;
+      z-index: 6;
+      font-size: 14px;
+      line-height: 1.45;
+    }
+    .notes.on { display: block; }
+    .notes h4 { margin: 0 0 8px; color: var(--gold); font-size: 12px; letter-spacing: 0.12em; }
+    .overview {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(8,22,36,0.94);
+      z-index: 8;
+      padding: 40px;
+      overflow: auto;
+    }
+    .overview.on { display: block; }
+    .overview h2 { color: #fff; margin: 0 0 20px; font-family: Arial, sans-serif; }
+    .ov-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+    .ov-card {
+      background: #10283F;
+      border: 1px solid #1E3D59;
+      color: #E8EEF4;
+      padding: 14px;
+      text-align: left;
+      cursor: pointer;
+      font-size: 13px;
+    }
+    .ov-card span { display: block; color: var(--gold); font-size: 11px; letter-spacing: 0.1em; margin-bottom: 6px; }
+    @media print {
+      html, body, .stage { background: #fff; height: auto; overflow: visible; }
+      .chrome, .notes, .overview { display: none !important; }
+      .frame { transform: none !important; width: 100% !important; height: auto !important; }
+      .slide {
+        display: flex !important;
+        position: relative;
+        page-break-after: always;
+        height: 1080px;
+        border: 1px solid #ddd;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="stage">
+    <div class="frame" id="frame">
+
+      <!-- 1 COVER -->
+      <section class="slide cover on" data-title="Cover" data-notes="Open here. Do not open with Doha, RASK, or overbooking. First sentence: Etihad already prices ancillaries in-house, so this is not another dashboard that prints a price.">
+        <p class="kicker">EXECUTIVE WALKTHROUGH</p>
+        <h1>Ancillary Pricing Production Lab</h1>
+        <div class="rule"></div>
+        <p class="sub">Testing, safely rolling out and monitoring machine-learning pricing for extra baggage and extra-legroom seats.</p>
+        <p class="meta">Independent portfolio prototype &nbsp;|&nbsp; August 2026 &nbsp;|&nbsp; Simulated result using synthetic/public data</p>
+        <p class="hint">Arrow keys to advance &nbsp;·&nbsp; Esc overview &nbsp;·&nbsp; N interview notes &nbsp;·&nbsp; P print</p>
+      </section>
+
+      <!-- 2 ANSWER -->
+      <section class="slide" data-title="The answer" data-notes="Pyramid: answer first. The product is the decision system. On today's simulated test the commercial answer is Return to Current Pricing. That is a feature, not a failure of the lab.">
+        <div class="bar"><h1>The answer</h1><span class="pg">02 / 16</span></div>
+        <div class="insight">Do not leave the New Model live. Return to Current Pricing until the test is healthy — and treat the decision system as the product, not the algorithm.</div>
+        <div class="body">
+          <div class="g3">
+            <div class="zone navy gold-edge">
+              <h3>Situation</h3>
+              <p>Etihad already has an in-house ancillary dynamic-pricing capability. Extra baggage and extra-legroom are the v1 products. Fare-brand upgrades are a later expansion, not this lab.</p>
+            </div>
+            <div class="zone cobalt-edge">
+              <h3>Complication</h3>
+              <p>A model that prints a price is not the job. The job is to test a New Model against Current Pricing, keep Business Rules in final control, introduce it in traffic steps, and HOLD or Return when it is not healthy.</p>
+            </div>
+            <div class="zone gold-edge">
+              <h3>Resolution</h3>
+              <p>A production lab: monotonic XGBoost estimates P(buy), a price grid maximises expected revenue, Business Rules finish, a four-layer fallback protects checkout, and the monitor currently says <b>Return to Current Pricing</b>.</p>
+            </div>
+          </div>
+          <div class="g4">
+            <div class="kpi fail"><div class="lbl">Simulated RevPP</div><div class="val">−44.3%</div><div class="hint">New Model vs Current Pricing</div></div>
+            <div class="kpi fail"><div class="lbl">Conversion</div><div class="val">−19.8 pp</div><div class="hint">Outside the −3 pp floor</div></div>
+            <div class="kpi pass"><div class="lbl">Rule violations</div><div class="val">0</div><div class="hint">Included / comps still respected</div></div>
+            <div class="kpi gold"><div class="lbl">Rollout Decision</div><div class="val" style="font-size:22px;padding-top:8px">Return</div><div class="hint">Not left live when unhealthy</div></div>
+          </div>
+        </div>
+        <div class="foot"><span>Source: docs/index.html fixture + Pricing Test Results (n=500) | Simulated result using synthetic/public data</span><span>Independent portfolio prototype. No Etihad internal data.</span></div>
+      </section>
+
+      <!-- 3 AGENDA -->
+      <section class="slide" data-title="Agenda" data-notes="Tell them this is a 12-minute walkthrough: question, approach, data, model, pipeline, numbers, controls. Click a row if you need to jump.">
+        <div class="bar"><h1>Agenda</h1><span class="pg">03 / 16</span></div>
+        <div class="insight">Walk the case in the order a Solutions Manager would: question first, then method, then evidence, then the kill switch.</div>
+        <div class="body">
+          <div class="g2">
+            <div class="zone white" style="padding:8px 0;border:0;background:transparent">
+              <table>
+                <thead><tr><th style="width:70px">#</th><th>Chapter</th><th>What you should leave with</th></tr></thead>
+                <tbody>
+                  <tr><td>01</td><td>Business question</td><td>What we are actually deciding</td></tr>
+                  <tr><td>02</td><td>Approach</td><td>Why I started from the decision, not the model</td></tr>
+                  <tr><td>03</td><td>Data, features, assumptions</td><td>What the New Model is allowed to see</td></tr>
+                  <tr><td>04</td><td>Model choice</td><td>Why monotonic XGBoost, not a Deepair-style net</td></tr>
+                  <tr><td>05</td><td>Pipeline</td><td>Offline train → online score → rules → monitor</td></tr>
+                  <tr><td>06</td><td>The numbers</td><td>AUC, one-booking lift, batch loss, decision</td></tr>
+                  <tr><td>07</td><td>Controls</td><td>Rules, fallback, traffic ladder</td></tr>
+                  <tr><td>08</td><td>Week one / 90 days</td><td>What I would request on the job</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="stack">
+              <div class="zone navy">
+                <h3>How to use this deck</h3>
+                <p class="small" style="color:#C5D0DC">This is the interview walkthrough. The live lab is the four Streamlit screens. The one-page brief is the leave-behind. Every number here is a simulated result using synthetic/public data.</p>
+              </div>
+              <div class="zone gold-edge">
+                <h3>Governing thought</h3>
+                <p>Inherit Current Pricing. Improve it in-house. Never bypass Business Rules. Expand only when the test is healthy.</p>
+              </div>
+              <div class="zone">
+                <h3>Language I will use</h3>
+                <p class="small">Current Pricing · New Model · Business Rules · Rollout Decision · Return to Current Pricing · Pricing Test Results. AED throughout.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="foot"><span>Source: interview/2_minute_story.md, hirevue_map.md, case_outline.md</span><span>Keys: ← → space &nbsp;|&nbsp; Esc overview</span></div>
+      </section>
+
+      <!-- 4 QUESTION -->
+      <section class="slide" data-title="The business question" data-notes="Issue tree. The question is not 'is AUC good?'. It is 'should this New Model stay live on this route/product?'. MECE branches: commercial, model, system, rules.">
+        <div class="bar"><h1>The business question</h1><span class="pg">04 / 16</span></div>
+        <div class="insight">The only production question: should we expand the New Model past 20% on AUH–LHR extra-legroom — or Return to Current Pricing?</div>
+        <div class="body">
+          <div class="tree">
+            <div class="tree-q">
+              <span class="tiny" style="color:var(--gold);letter-spacing:0.14em;font-weight:700">DECISION</span>
+              <strong>Expand, HOLD, or Return?</strong>
+              <p class="small" style="color:#C5D0DC">Not “what price should this passenger see?” Revenue Management already has Current Pricing. We are deciding whether the New Model deserves traffic.</p>
+            </div>
+            <div class="branches">
+              <div class="branch">
+                <div><b>Commercial</b><div class="tiny">RevPP and conversion</div></div>
+                <div class="small">Does expected revenue per passenger rise without damaging conversion more than −3 percentage points?</div>
+                <span class="tag fail">FAIL</span>
+              </div>
+              <div class="branch">
+                <div><b>Model health</b><div class="tiny">Calibration and drift</div></div>
+                <div class="small">Are predictions still calibrated? Has AUH–BOM within 7 days of departure started behaving unlike training?</div>
+                <span class="tag pass">WATCH</span>
+              </div>
+              <div class="branch">
+                <div><b>System</b><div class="tiny">Checkout must never fail open</div></div>
+                <div class="small">If the New Model dies, does the guest still get a valid price (Current Pricing → simple rules → safe fixed)?</div>
+                <span class="tag pass">PASS</span>
+              </div>
+              <div class="branch">
+                <div><b>Business Rules</b><div class="tiny">Final control</div></div>
+                <div class="small">Are included-in-fare, Guest comps, inventory, min/max, airport-vs-online bags, and temporary RM caps still binding?</div>
+                <span class="tag pass">PASS</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="foot"><span>Source: monitor/health.py thresholds — revenue floor −2%, conversion floor −3 pp, expand if RevPP &gt; +4%</span><span>Simulated result using synthetic/public data</span></div>
+      </section>
+
+      <!-- 5 APPROACH -->
+      <section class="slide" data-title="Approach" data-notes="This is the 'how I think' slide. Six choices, each with a because. Interviewers care more about this than AUC.">
+        <div class="bar"><h1>Approach</h1><span class="pg">05 / 16</span></div>
+        <div class="insight">I started from the commercial decision and worked backward to the algorithm — so the New Model can be killed without killing checkout.</div>
+        <div class="body">
+          <table>
+            <thead><tr><th style="width:70px">Step</th><th>Choice</th><th>Because</th><th>If I had done the opposite</th></tr></thead>
+            <tbody>
+              <tr><td>1</td><td>Treat Current Pricing as the baseline, not a greenfield</td><td>Etihad already prices ancillaries in-house. The lab has to inherit and improve.</td><td>A pretty dashboard that cannot be compared to today’s quote.</td></tr>
+              <tr><td>2</td><td>Model P(buy | price, context), not the price itself</td><td>Revenue Management still needs a grid, a band, and a cap. Probability is the input; price is the decision.</td><td>An opaque “the network said AED 173” with no lever.</td></tr>
+              <tr><td>3</td><td>Business Rules always finish</td><td>Brand inclusion, Guest comps, inventory and RM caps are not suggestions.</td><td>The model sells a seat that is already included, or a seat that does not exist.</td></tr>
+              <tr><td>4</td><td>Traffic ladder, not a cutover</td><td>Shadow logs the New Model while the guest still sees Current Pricing. Then 5% → 20% → 50% → 100%.</td><td>One bad week becomes a network-wide ancillary event.</td></tr>
+              <tr><td>5</td><td>Monitor decides HOLD / expand / Return</td><td>One AUH–LHR booking with higher expected revenue is not a production decision.</td><td>A locally clever price that loses money in the batch.</td></tr>
+              <tr><td>6</td><td>Say the data is simulated, every time</td><td>This is a portfolio prototype. Honesty is part of the design.</td><td>A number that sounds like Etihad production and is not.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="foot"><span>Source: README.md architecture; interview/case_outline.md</span><span>v1 products only: extra baggage, extra-legroom</span></div>
+      </section>
+
+      <!-- 6 DATA -->
+      <section class="slide" data-title="Data and assumptions" data-notes="Be explicit: kaggle_used is false. BA-shaped synthetic seed, 12,000 rows, seed 42. Hidden WTP is written under generator/ and is not a training input. Week-one request is DATA_CARD section D.">
+        <div class="bar"><h1>Data and assumptions</h1><span class="pg">06 / 16</span></div>
+        <div class="insight">The New Model is trained on an offer log it could actually have seen — displayed price and purchased / not purchased — never on hidden willingness-to-pay.</div>
+        <div class="body stack">
+          <div class="g4" style="height:auto">
+            <div class="kpi"><div class="lbl">Offer-log rows</div><div class="val">12,000</div><div class="hint">Train 9,600 · holdout 2,400</div></div>
+            <div class="kpi"><div class="lbl">Public seed</div><div class="val" style="font-size:22px;padding-top:8px">BA-shaped</div><div class="hint">Kaggle file not in repo (kaggle_used: false)</div></div>
+            <div class="kpi"><div class="lbl">Buy rate in log</div><div class="val">53.3%</div><div class="hint">Target = purchased at displayed price</div></div>
+            <div class="kpi"><div class="lbl">Generator leak</div><div class="val pass">None</div><div class="hint">Unit test fails if training reads it</div></div>
+          </div>
+          <div class="g2" style="height:auto">
+            <div class="zone">
+              <h3>What I assumed (explicit)</h3>
+              <ul>
+                <li>Current Pricing is a rules surface on route, days to departure, product, channel, remaining extra-legroom — a stand-in, not Etihad logic.</li>
+                <li>Guests buy if latent WTP ≥ displayed price. That WTP is synthetic, with haul, scarcity, party size and channel baked in.</li>
+                <li>Displayed prices in the log are Current Pricing plus AED −20 to +25 jitter, so the New Model sees a range, not a single tariff.</li>
+                <li>Fare-brand inclusion and Gold/Platinum extra-legroom comps are portfolio stand-ins from public merchandising patterns.</li>
+              </ul>
+            </div>
+            <div class="zone fail-edge">
+              <h3>What that implies for the numbers</h3>
+              <ul>
+                <li>Every metric in this deck is a <b>simulated result using synthetic/public data</b>.</li>
+                <li>The New Model can overfit the generator’s WTP shape even though it never sees the hidden columns.</li>
+                <li>Training prices are Current Pricing quotes, not the New Model’s own quotes — so scoring a new grid is an extrapolation.</li>
+                <li>Until a real offer log exists, AUC is a lab diagnostic, not a go-live certificate.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        <div class="foot"><span>Source: DATA_CARD.md, data/build_meta.json, data/build_offer_log.py, generator/wtp.py</span><span>Seed 42 · routes AUH–LHR / JFK / BOM / CDG / SYD</span></div>
+      </section>
+
+      <!-- 7 FEATURES -->
+      <section class="slide" data-title="Features" data-notes="Name the allowed list from memory. Mention the leakage test. displayed_price is the only price the model sees. remaining_extra_legroom is a feature even on bag offers — inventory context.">
+        <div class="bar"><h1>Features</h1><span class="pg">07 / 16</span></div>
+        <div class="insight">Ten features, one target. If a column cannot exist in a production offer log, it does not enter training.</div>
+        <div class="body">
+          <div class="g13">
+            <div class="zone white" style="padding:0;border:0">
+              <table>
+                <thead><tr><th>Allowed feature</th><th>Why it is in the model</th></tr></thead>
+                <tbody>
+                  <tr><td><b>route</b></td><td>Hub-market mix; haul length is a pricing context, not a secret.</td></tr>
+                  <tr><td><b>fare_type</b></td><td>Basic / Value / Comfort / Deluxe — inclusion differs by brand.</td></tr>
+                  <tr><td><b>loyalty</b></td><td>Guest tier at offer time. Comps are applied later by Business Rules.</td></tr>
+                  <tr><td><b>channel</b></td><td>Web / app / airport. Airport bags are never cheaper than digital after rules.</td></tr>
+                  <tr><td><b>cabin</b></td><td>Economy vs Business changes both WTP and which comps apply.</td></tr>
+                  <tr><td><b>days_to_departure</b></td><td>Advance purchase vs last-minute. The largest commercial lever.</td></tr>
+                  <tr><td><b>remaining_extra_legroom</b></td><td>Scarcity. Rules also block the offer at zero inventory.</td></tr>
+                  <tr><td><b>party_size</b></td><td>Bags especially: families buy differently from solo travellers.</td></tr>
+                  <tr><td><b>product_type</b></td><td>extra_baggage or extra_legroom. One model, two products.</td></tr>
+                  <tr><td><b>displayed_price</b></td><td>The only price the model sees. Monotone: higher price → lower P(buy).</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="stack">
+              <div class="zone navy">
+                <h3>Target</h3>
+                <p><b>purchased</b> — 1 if the guest bought at the displayed price, else 0. Not revenue. Not WTP.</p>
+              </div>
+              <div class="zone fail-edge">
+                <h3>Forbidden in training</h3>
+                <p class="small"><b>latent_wtp</b>, <b>generator_rule_id</b>, <b>true_elasticity</b>. Written only under <i>generator/</i>. A unit test fails if training code imports them, and ingest into Databricks / BigQuery keeps only the allowed columns.</p>
+              </div>
+              <div class="zone gold-edge">
+                <h3>Week-one request (real job)</h3>
+                <p class="small">Offer logs with displayed price, purchase / refund / void, fare brand at ticketing, Guest tier at offer, remaining seat-map inventory, Current Pricing output, digital vs airport fulfilment, RM override history.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="foot"><span>Source: data/TRAINING_FEATURES.md, tests/test_no_leakage.py, gcp/runs/ingest_run.json (generator_columns_present: false)</span><span>11 columns in offer_log_train</span></div>
+      </section>
+
+      <!-- 8 MODEL -->
+      <section class="slide" data-title="Model choice" data-notes="This is the 'why this model' slide. Do not apologise for not using a neural net. Deepair-style is a spoken 90-day live test after the decision system is trusted. Stay with Current Pricing / New Model language.">
+        <div class="bar"><h1>Model choice</h1><span class="pg">08 / 16</span></div>
+        <div class="insight">Monotonic XGBoost was chosen because Revenue Management can trust it, test it, export it, and kill it — not because it is the most fashionable architecture.</div>
+        <div class="body">
+          <table>
+            <thead>
+              <tr>
+                <th>Option</th>
+                <th>What it would do</th>
+                <th>Why not for this POC</th>
+                <th>When I would use it</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Logistic / GLM</td>
+                <td>Interpretable P(buy) with signed coefficients</td>
+                <td>Misses interactions: last-minute × scarcity × long-haul × channel</td>
+                <td>Week-one baseline on a real offer log, always</td>
+              </tr>
+              <tr>
+                <td>Unconstrained gradient boosting</td>
+                <td>Flexible P(buy), strong fit</td>
+                <td>Can raise purchase chance as price rises. RM will not sign that off</td>
+                <td>Never without a decreasing constraint on price</td>
+              </tr>
+              <tr>
+                <td>Deepair-style end-to-end net</td>
+                <td>Map context directly to a price</td>
+                <td>Hard to explain, hungry for live traffic, expensive to serve, no RM lever</td>
+                <td>Spoken 90-day live test — after this decision system is trusted</td>
+              </tr>
+              <tr class="pick">
+                <td>Monotonic XGBoost (chosen)</td>
+                <td>P(buy | price, context), then max price × P(buy) on a discrete grid</td>
+                <td>Still a lab model on synthetic WTP — hence the monitor</td>
+                <td>Hero for v1. Artifact: new_model/model.joblib</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="g4" style="margin-top:14px;height:auto">
+            <div class="kpi"><div class="lbl">Trees / depth</div><div class="val" style="font-size:26px">180 / 4</div><div class="hint">Shallow on purpose — regularise</div></div>
+            <div class="kpi"><div class="lbl">Learning rate</div><div class="val" style="font-size:26px">0.08</div><div class="hint">subsample &amp; colsample 0.85</div></div>
+            <div class="kpi"><div class="lbl">Monotone on price</div><div class="val" style="font-size:26px">−1</div><div class="hint">Unit-tested: AED 80 P(buy) ≥ AED 150</div></div>
+            <div class="kpi"><div class="lbl">Objective</div><div class="val" style="font-size:22px;padding-top:8px">log-loss</div><div class="hint">Probability, not a point price</div></div>
+          </div>
+        </div>
+        <div class="foot"><span>Source: new_model/train.py · tests/test_monotonic_price.py · interview/case_outline.md</span><span>min_child_weight 6 · reg_lambda 1.5 · random_state 42</span></div>
+      </section>
+
+      <!-- 9 MECHANICS -->
+      <section class="slide" data-title="Pricing mechanics" data-notes="Walk the equation out loud. Grid for bags 40-220 step 10; seats 50-280 step 10. Then Business Rules can cap. Fixture: recommend 140, rules_passed, customer sees 140. Other bookings: recommend 175, cap 150, guest sees 150.">
+        <div class="bar"><h1>Pricing mechanics</h1><span class="pg">09 / 16</span></div>
+        <div class="insight">The New Model does not emit a price. It scores every allowed price, picks the expected-revenue maximum, then Business Rules decide what the guest actually sees.</div>
+        <div class="body">
+          <div class="stack">
+            <div class="eq">price* = argmax<sub>p ∈ grid</sub> &nbsp; p × P(buy | p, booking) &nbsp;&nbsp; then &nbsp;&nbsp; customer_price = BusinessRules(price*)</div>
+            <div class="steps">
+              <div class="step">1. Booking context</div>
+              <div class="step">2. Score P(buy) on grid</div>
+              <div class="step">3. Max price × P(buy)</div>
+              <div class="step now">4. Business Rules</div>
+              <div class="step">5. Guest sees AED</div>
+            </div>
+            <div class="g3" style="height:auto">
+              <div class="zone">
+                <h3>Grids (AED)</h3>
+                <p class="small">Extra baggage <b>40–220</b> step 10.<br/>Extra-legroom <b>50–280</b> step 10.<br/>RM bands can shrink the grid (AUH–LHR extra-legroom live band <b>80–150</b>).</p>
+              </div>
+              <div class="zone gold-edge">
+                <h3>Why a grid, not a continuous price</h3>
+                <p class="small">Ancillaries are merchandised in round AED. A grid is auditable, band-able, and cheap to score. Continuous optimisation would imply a precision the channel does not have.</p>
+              </div>
+              <div class="zone">
+                <h3>Worked example (cap)</h3>
+                <p class="small">New Model recommends <b>AED 175</b>. Temporary RM cap is <b>AED 150</b>. Guest sees <b>AED 150</b>. Reason code: temporary_rm_cap. The model did not “lose.” Rules won, by design.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="foot"><span>Source: new_model/recommend.py, lab/constants.py PRICE_GRIDS, business_rules/__init__.py</span><span>Current Pricing remains the comparison quote on every booking</span></div>
+      </section>
+
+      <!-- 10 PIPELINE -->
+      <section class="slide" data-title="Pipeline" data-notes="Offline is Databricks Free (MLflow) and a parallel GCP path (BigQuery + Colab/Vertex). Online is the Streamlit lab scoring the exported joblib — no paid serving endpoint. That honesty is intentional.">
+        <div class="bar"><h1>Pipeline</h1><span class="pg">10 / 16</span></div>
+        <div class="insight">Offline trains P(buy) where the resume can honestly say Databricks and BigQuery. Online scores an exported artifact — paid model serving is not required, and not claimed.</div>
+        <div class="body">
+          <div class="g2">
+            <div class="zone">
+              <h3>Offline — train</h3>
+              <div class="steps" style="margin:10px 0 14px;flex-wrap:wrap">
+                <div class="step">Seed + Current Pricing jitter</div>
+                <div class="step">offer_log_train.parquet</div>
+                <div class="step">Ingest (allowed cols only)</div>
+                <div class="step now">XGBoost + monotone</div>
+              </div>
+              <ul>
+                <li><b>Databricks Free:</b> workspace.ancillary_lab.offer_log_raw / offer_log_train. MLflow experiment ancillary-new-model. Run 50dd648c…1562.</li>
+                <li><b>GCP:</b> BigQuery dataset ancillary_lab, same two tables. Colab / Vertex notebook gcp/run_ingest_and_train.ipynb. generator_columns_present: false.</li>
+                <li>Export <b>new_model/model.joblib</b>. The lab loads it locally in new_model/score.py.</li>
+              </ul>
+            </div>
+            <div class="zone gold-edge">
+              <h3>Online — decide</h3>
+              <div class="steps" style="margin:10px 0 14px">
+                <div class="step">Booking</div>
+                <div class="step">New Model grid</div>
+                <div class="step now">Business Rules</div>
+                <div class="step">Log + monitor</div>
+              </div>
+              <ul>
+                <li>Path: booking → possible prices → P(buy) → max expected revenue → Business Rules → guest buys / does not → save → monitor.</li>
+                <li>Fallback if anything throws: <b>New Model → Current Pricing → simple rules → safe fixed</b> (AED 75 bags / AED 95 seats).</li>
+                <li>Rollout assignment is by route × product. Shadow means log the New Model; the guest still pays Current Pricing.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        <div class="foot"><span>Source: databricks/README_DATABRICKS.md, gcp/README_GCP.md, databricks/runs/train_run.json, gcp/runs/ingest_run.json</span><span>Same training code: new_model/train.py</span></div>
+      </section>
+
+      <!-- 11 NUMBERS -->
+      <section class="slide" data-title="Evidence — model and fixture" data-notes="Holdout AUC ~0.87 is useful discrimination, not a go-live. Then the fixture: on this one AUH-LHR Economy Basic booking the New Model looks better (AED 121 vs 111 expected revenue) by pricing 140 not 190. That is why you still need the batch.">
+        <div class="bar"><h1>Evidence — model and one booking</h1><span class="pg">11 / 16</span></div>
+        <div class="insight">Holdout AUC is 0.87 — useful ranking, not a licence to go live. On one AUH–LHR booking the New Model even looks better. That is exactly why a batch test exists.</div>
+        <div class="body">
+          <div class="g2">
+            <div class="stack">
+              <div class="g4" style="height:auto">
+                <div class="kpi"><div class="lbl">Local AUC</div><div class="val" style="font-size:28px">0.872</div><div class="hint">log-loss 0.448</div></div>
+                <div class="kpi"><div class="lbl">Databricks AUC</div><div class="val" style="font-size:28px">0.870</div><div class="hint">log-loss 0.451</div></div>
+                <div class="kpi"><div class="lbl">Train / test</div><div class="val" style="font-size:24px">9.6k / 2.4k</div><div class="hint">Stratified 80 / 20</div></div>
+                <div class="kpi"><div class="lbl">Positive rate</div><div class="val" style="font-size:28px">53.3%</div><div class="hint">Not a rare-event problem</div></div>
+              </div>
+              <div class="zone">
+                <h3>What AUC is allowed to mean</h3>
+                <p class="small">The New Model ranks buyers vs non-buyers on held-out offer-log rows. It does <b>not</b> prove that the prices it would have shown — which were not in the log — would have raised revenue. Discrimination ≠ commercial impact.</p>
+              </div>
+            </div>
+            <div class="zone navy">
+              <h3>Fixture — AUH → LHR · Economy Basic · 4 days out · 7 extra-legroom left</h3>
+              <table style="margin-top:10px">
+                <thead><tr><th></th><th>Current Pricing</th><th>New Model</th></tr></thead>
+                <tbody>
+                  <tr><td>Price</td><td>AED 190.00</td><td>AED 140.00</td></tr>
+                  <tr><td>P(buy)</td><td>58.7%</td><td>86.7%</td></tr>
+                  <tr><td>Expected revenue</td><td>AED 111.44</td><td>AED 121.38</td></tr>
+                </tbody>
+              </table>
+              <p class="small" style="margin-top:12px;color:#C5D0DC">Guest sees <b>AED 140</b>. Reason: rules_passed. Why: departure is close, long-haul, few extra-legroom seats remain, fare does not already include the seat. Local expected revenue is <b>+8.9%</b> — and still not a Rollout Decision.</p>
+            </div>
+          </div>
+        </div>
+        <div class="foot"><span>Source: databricks/runs/local_train_metrics.json, train_run.json, docs/index.html Price Explanation fixture</span><span>Simulated result using synthetic/public data</span></div>
+      </section>
+
+      <!-- 12 TEST RESULTS -->
+      <section class="slide" data-title="Pricing Test Results" data-notes="This is the honesty slide. Out loud: Simulated result using synthetic/public data. n=500, live New Model arm n=5. The monitor Returns. Say why a locally good fixture can still fail the batch: rules-zeroed offers, band caps, ASP collapse, and scoring a new price grid the log never showed.">
+        <div class="bar"><h1>Pricing Test Results</h1><span class="pg">12 / 16</span></div>
+        <div class="insight">On 500 simulated bookings the New Model loses 44% of revenue. The monitor therefore Returns to Current Pricing. A model is not left live when the test is unhealthy — that is the point of the screen.</div>
+        <div class="body">
+          <div class="g13">
+            <div class="zone white" style="padding:0;border:0">
+              <table>
+                <thead><tr><th></th><th>Current Pricing</th><th>New Model</th><th>Delta</th></tr></thead>
+                <tbody>
+                  <tr><td>Revenue per passenger</td><td>AED 82.05</td><td>AED 45.69</td><td style="color:var(--fail);font-weight:800">−44.3%</td></tr>
+                  <tr><td>Purchase rate</td><td>57.5%</td><td>37.8%</td><td style="color:var(--fail);font-weight:800">−19.8 pp</td></tr>
+                  <tr><td>Average selling price</td><td>AED 141.62</td><td>AED 54.09</td><td style="color:var(--fail);font-weight:800">−62%</td></tr>
+                  <tr><td>Business-rule violations</td><td>—</td><td>0</td><td style="color:var(--pass);font-weight:800">PASS</td></tr>
+                </tbody>
+              </table>
+              <svg viewBox="0 0 640 168" width="100%" height="168" aria-hidden="true" style="margin-top:8px">
+                <text x="0" y="18" fill="#8C8C8C" font-size="12" font-family="Arial">Expected RevPP (AED) — Current vs New</text>
+                <rect x="0" y="36" width="560" height="18" fill="#EEF1F4"/>
+                <rect x="0" y="36" width="512" height="18" fill="#1B5AB5"/>
+                <text x="520" y="50" fill="#0B1F3A" font-size="13" font-family="Arial" font-weight="700">82.05</text>
+                <rect x="0" y="78" width="560" height="18" fill="#EEF1F4"/>
+                <rect x="0" y="78" width="285" height="18" fill="#C4A35A"/>
+                <text x="293" y="92" fill="#0B1F3A" font-size="13" font-family="Arial" font-weight="700">45.69</text>
+                <text x="0" y="128" fill="#8C8C8C" font-size="12" font-family="Arial">n = 500 simulated bookings · live New Model arm n = 5 · not a live airline A/B test</text>
+                <text x="0" y="150" fill="#8C8C8C" font-size="12" font-family="Arial">Kill rule: Return if RevPP impact ≤ −2% or conversion impact ≤ −3 pp. Expand only if RevPP &gt; +4% and conversion holds.</text>
+              </svg>
+            </div>
+            <div class="stack">
+              <div class="zone fail-edge">
+                <h3>Rollout Decision</h3>
+                <p><span class="tag fail">RETURN</span></p>
+                <p style="margin-top:10px">Commercial performance is outside the agreed tolerance. Rules passed. Checkout still has a fallback. We still Return.</p>
+              </div>
+              <div class="zone">
+                <h3>Why a good fixture can fail a batch</h3>
+                <ul>
+                  <li>Comparison is New Model <b>after</b> Business Rules vs Current Pricing quotes. Included / comps record AED 0 on the New Model side.</li>
+                  <li>Live band caps extra-legroom at AED 150; Current Pricing can quote 190+.</li>
+                  <li>ASP collapses (AED 54 vs 142). The log never showed the New Model’s own grid — this is an extrapolation.</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="foot"><span>Source: docs/index.html Pricing Test Results; monitor/health.py; monitor/test_results.py</span><span>Simulated result using synthetic/public data</span></div>
+      </section>
+
+      <!-- 13 CONTROLS -->
+      <section class="slide" data-title="Controls" data-notes="Three layers of control: Business Rules, checkout fallback, traffic ladder. AUH-LHR extra-legroom is the only cell at 20%. Everything else is shadow. HOLD reason in code is AUH-BOM short-DTD drift — currently commercial fail fires first.">
+        <div class="bar"><h1>Controls that keep it safe</h1><span class="pg">13 / 16</span></div>
+        <div class="insight">Business Rules, a four-layer fallback, and a traffic ladder are the product. The New Model is a component that can be set to zero without stranding a guest.</div>
+        <div class="body">
+          <div class="stack">
+            <div>
+              <h3>Traffic ladder — AUH–LHR extra-legroom is the only live cell</h3>
+              <div class="steps" style="margin-top:8px">
+                <div class="step">Offline</div>
+                <div class="step">Shadow</div>
+                <div class="step">5%</div>
+                <div class="step now">20% live</div>
+                <div class="step">50%</div>
+                <div class="step">100%</div>
+                <div class="step kill">Return to Current Pricing</div>
+              </div>
+              <p class="tiny" style="margin-top:8px">Shadow = log the New Model, guest still sees Current Pricing. Other route × product cells remain shadow / 0% traffic. Allowed band on the live cell: AED 80–150. Status: TESTING.</p>
+            </div>
+            <div class="g3" style="height:auto">
+              <div class="zone">
+                <h3>Business Rules (always last)</h3>
+                <ul>
+                  <li>No inventory → do not offer</li>
+                  <li>Included in fare → AED 0</li>
+                  <li>Gold/Platinum Economy extra-legroom → complimentary stand-in</li>
+                  <li>Min / max and temporary RM caps</li>
+                  <li>Airport bags never cheaper than digital after rules</li>
+                </ul>
+              </div>
+              <div class="zone">
+                <h3>Checkout fallback</h3>
+                <p class="small" style="margin-bottom:10px">If the New Model throws, checkout does not fail open.</p>
+                <ol class="small" style="margin:0;padding-left:18px;font-size:16px;line-height:1.55">
+                  <li>New Model</li>
+                  <li>Current Pricing</li>
+                  <li>Simple pricing rules</li>
+                  <li>Safe fixed price (75 / 95)</li>
+                </ol>
+              </div>
+              <div class="zone gold-edge">
+                <h3>Monitor gates</h3>
+                <ul>
+                  <li>Return if RevPP ≤ −2% or conversion ≤ −3 pp</li>
+                  <li>HOLD if AUH–BOM, DTD ≤ 7, prediction−realised &gt; 8 pp</li>
+                  <li>Expand only if RevPP &gt; +4% and conversion holds</li>
+                  <li>Fail if fallback rate ≥ 3% or pricing failures ≥ 2%</li>
+                  <li>Fail if included/comp offers are billed</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="foot"><span>Source: lab_state/rollout.json, rollout/ladder.py, fallback/__init__.py, business_rules/__init__.py, monitor/health.py</span><span>RM sets traffic, bands, pause — not per-passenger approve</span></div>
+      </section>
+
+      <!-- 14 FOUR SCREENS -->
+      <section class="slide" data-title="Four screens" data-notes="Demo order is fixed: Price Explanation → Pricing Controls → Pricing Test Results → Production Monitor. 2-minute story. Do not skip the simulated-data sentence on results.">
+        <div class="bar"><h1>Four screens — the live walkthrough</h1><span class="pg">14 / 16</span></div>
+        <div class="insight">The Streamlit lab is the same argument in product form. Walk the screens in this order; each one is a HireVue beat.</div>
+        <div class="body">
+          <div class="g4" style="flex:1">
+            <div class="zone cobalt-edge">
+              <h3>1. Price Explanation</h3>
+              <p class="small"><b>Story:</b> inherit Current Pricing and improve it in-house.</p>
+              <p class="small" style="margin-top:10px">Why this extra-legroom quote moved on AUH–LHR Economy Basic, four days out. Both prices in AED. Show the cap line if rules bind.</p>
+            </div>
+            <div class="zone">
+              <h3>2. Pricing Controls</h3>
+              <p class="small"><b>Story:</b> Business Rules have final control; adoption is an RM change, not per-passenger approve.</p>
+              <p class="small" style="margin-top:10px">Traffic percent, price band, pause, Return to Current Pricing. Ladder: shadow → 5% → 20% → 50% → 100%.</p>
+            </div>
+            <div class="zone">
+              <h3>3. Pricing Test Results</h3>
+              <p class="small"><b>Story:</b> commercial impact. Out loud: simulated result using synthetic/public data.</p>
+              <p class="small" style="margin-top:10px">RevPP, conversion, ASP. n=500, live arm n=5. Not a live airline A/B test.</p>
+            </div>
+            <div class="zone gold-edge">
+              <h3>4. Production Monitor</h3>
+              <p class="small"><b>Story:</b> HOLD / Return. Checkout fallback.</p>
+              <p class="small" style="margin-top:10px">Commercial, model, system, rules — then a giant Rollout Decision. Today: Return to Current Pricing.</p>
+            </div>
+          </div>
+        </div>
+        <div class="foot"><span>Source: interview/2_minute_story.md, hirevue_map.md · streamlit run app/Home.py</span><span>Live lab: dureduran.github.io/EtihadPricingDemo</span></div>
+      </section>
+
+      <!-- 15 WEEK ONE -->
+      <section class="slide" data-title="Week one and 90 days" data-notes="Spoken 90-day ideas only — fare-brand buy-up and fare+ancillary coherence. Not in v1. Deepair-style net only after the decision system is trusted. Week-one data list is from DATA_CARD D.">
+        <div class="bar"><h1>Week one on the job — and what is deliberately not v1</h1><span class="pg">15 / 16</span></div>
+        <div class="insight">I would not retrain first. I would request the real offer log, wire it into this same decision system, and only then discuss a more ambitious model.</div>
+        <div class="body">
+          <div class="g3">
+            <div class="zone navy">
+              <h3>Week one — data</h3>
+              <ol class="small" style="margin:0;padding-left:18px;color:#E8EEF4;line-height:1.55;font-size:16px">
+                <li>Displayed ancillary price, product, channel, timestamp</li>
+                <li>Purchase / refund / void outcomes</li>
+                <li>Fare brand at ticketing and Guest tier at offer time</li>
+                <li>Seat-map remaining extra-legroom / preferred inventory</li>
+                <li>Current Pricing output and any existing model score</li>
+                <li>Digital vs airport fulfilment prices</li>
+                <li>Guardrail / override history from Revenue Management</li>
+              </ol>
+            </div>
+            <div class="zone">
+              <h3>Week one — method</h3>
+              <ul>
+                <li>Fit a GLM baseline on the real log before any boosting.</li>
+                <li>Keep the monotone price constraint; keep Business Rules last.</li>
+                <li>Shadow only until calibration and rule-violation rates are boring.</li>
+                <li>Define HOLD markets in advance (the lab uses AUH–BOM, DTD ≤ 7 as the worked example).</li>
+              </ul>
+            </div>
+            <div class="zone gold-edge">
+              <h3>Spoken 90-day ideas — not built</h3>
+              <ul>
+                <li>Fare-brand buy-up (Basic → Value / Comfort) as a third product.</li>
+                <li>Fare + ancillary coherence: ticket bid price vs bag/seat so the bundle does not fight itself.</li>
+                <li>A Deepair-style end-to-end net as a <b>later live test</b>, not a replacement for this control plane.</li>
+              </ul>
+              <p class="small" style="margin-top:12px">Risks I would name: Guest perception, airport vs digital bag price, fare/ancillary inconsistency, overfit to synthetic WTP until the real log arrives.</p>
+            </div>
+          </div>
+        </div>
+        <div class="foot"><span>Source: DATA_CARD.md section D · interview/case_outline.md</span><span>Fare-brand upgrades are a future expansion, not built here</span></div>
+      </section>
+
+      <!-- 16 CLOSE -->
+      <section class="slide" data-title="Recommendation" data-notes="Close on the governing thought. If they ask for GitHub: Dureduran/EtihadPricingDemo. If they want to click: this walkthrough + the four screens. Do not oversell the AUC.">
+        <div class="bar"><h1>Recommendation</h1><span class="pg">16 / 16</span></div>
+        <div class="insight">Keep the decision system. Do not keep this New Model live. Retrain and re-test on a real offer log before any expansion past shadow.</div>
+        <div class="body">
+          <div class="g2">
+            <div class="zone navy gold-edge">
+              <h3>What I would tell Revenue Management</h3>
+              <p style="font-size:22px;line-height:1.4;margin-top:8px">On synthetic/public data the New Model is not commercially healthy. Return to Current Pricing. The fixture on AUH–LHR looked encouraging; the batch did not. That disagreement is why we built a monitor instead of a score dashboard.</p>
+            </div>
+            <div class="stack">
+              <div class="zone pass-edge">
+                <h3>Keep</h3>
+                <p class="small">P(buy) on a grid · monotone price · Business Rules last · shadow ladder · four-layer fallback · HOLD / Return gates · leakage tests · AED, Current Pricing, New Model language.</p>
+              </div>
+              <div class="zone fail-edge">
+                <h3>Do not keep live</h3>
+                <p class="small">This particular trained artifact, on this simulated log, at 20% traffic. Commercial impact −44.3% RevPP and −19.8 pp conversion vs a −2% / −3 pp contract.</p>
+              </div>
+              <div class="zone">
+                <h3>Leave-behinds</h3>
+                <p class="small">GitHub Dureduran/EtihadPricingDemo · this walkthrough · one-page brief PDF · Streamlit lab (four screens) · Databricks / BigQuery train records in-repo.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="foot"><span>Independent portfolio prototype using synthetic and public data. No Etihad internal data, systems or proprietary pricing logic are used.</span><span>End of walkthrough</span></div>
+      </section>
+
+    </div>
+  </div>
+
+  <aside class="notes" id="notes"><h4>INTERVIEW NOTES</h4><div id="notesBody"></div></aside>
+  <div class="overview" id="overview">
+    <h2>Jump to a slide</h2>
+    <div class="ov-grid" id="ovGrid"></div>
+  </div>
+  <div class="chrome">
+    <div>
+      <button class="navbtn" id="prev" type="button">← Prev</button>
+      <button class="navbtn" id="next" type="button">Next →</button>
+      <button class="navbtn" id="ovBtn" type="button">Overview (Esc)</button>
+      <button class="navbtn" id="noteBtn" type="button">Notes (N)</button>
+    </div>
+    <div class="dots" id="dots"></div>
+    <div><b>← →</b> to walk through &nbsp;·&nbsp; simulated synthetic/public data</div>
+  </div>
+
+  <script>
+    const slides = [...document.querySelectorAll(".slide")];
+    const dots = document.getElementById("dots");
+    const notes = document.getElementById("notes");
+    const notesBody = document.getElementById("notesBody");
+    const overview = document.getElementById("overview");
+    const ovGrid = document.getElementById("ovGrid");
+    const frame = document.getElementById("frame");
+    let i = 0;
+
+    slides.forEach((s, idx) => {
+      const b = document.createElement("button");
+      b.className = "dot" + (idx === 0 ? " on" : "");
+      b.title = s.dataset.title || ("Slide " + (idx + 1));
+      b.addEventListener("click", () => show(idx));
+      dots.appendChild(b);
+      const c = document.createElement("button");
+      c.className = "ov-card";
+      c.innerHTML = "<span>" + String(idx + 1).padStart(2, "0") + "</span>" + (s.dataset.title || "");
+      c.addEventListener("click", () => { overview.classList.remove("on"); show(idx); });
+      ovGrid.appendChild(c);
+    });
+
+    function show(n) {
+      i = (n + slides.length) % slides.length;
+      slides.forEach((s, k) => s.classList.toggle("on", k === i));
+      [...dots.children].forEach((d, k) => d.classList.toggle("on", k === i));
+      notesBody.textContent = slides[i].dataset.notes || "";
+    }
+    function scale() {
+      const w = window.innerWidth;
+      const h = window.innerHeight - 48;
+      const s = Math.min(w / 1920, h / 1080);
+      frame.style.transform = "scale(" + s + ")";
+    }
+    document.getElementById("prev").onclick = () => show(i - 1);
+    document.getElementById("next").onclick = () => show(i + 1);
+    document.getElementById("ovBtn").onclick = () => overview.classList.toggle("on");
+    document.getElementById("noteBtn").onclick = () => notes.classList.toggle("on");
+    window.addEventListener("resize", scale);
+    window.addEventListener("keydown", (e) => {
+      if (["INPUT", "TEXTAREA"].includes(e.target.tagName)) return;
+      if (e.key === "ArrowRight" || e.key === " " || e.key === "PageDown") { e.preventDefault(); show(i + 1); }
+      if (e.key === "ArrowLeft" || e.key === "PageUp") { e.preventDefault(); show(i - 1); }
+      if (e.key === "Home") show(0);
+      if (e.key === "End") show(slides.length - 1);
+      if (e.key === "Escape") overview.classList.toggle("on");
+      if (e.key === "n" || e.key === "N") notes.classList.toggle("on");
+      if (e.key === "?" ) overview.classList.toggle("on");
+    });
+    show(0);
+    scale();
+  </script>
+</body>
+</html>
